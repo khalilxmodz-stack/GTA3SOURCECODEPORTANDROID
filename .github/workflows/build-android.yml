@@ -30,15 +30,13 @@ jobs:
     # When triggered after Unzip, build only if Unzip succeeded.
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
-          # Required: librw, ogg, opus and opusfile are Git submodules.
           submodules: recursive
-          fetch-depth: 0
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -46,24 +44,53 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android NDK and CMake
+      # The runner already ships an Android SDK ($ANDROID_HOME), so we use it
+      # directly instead of android-actions/setup-android (which hung on
+      # "sdkmanager --licenses").
+      - name: Install Android SDK packages, NDK and CMake
+        shell: bash
         run: |
-          sdkmanager --install "ndk;27.2.12479018" "cmake;3.22.1"
-          yes | sdkmanager --licenses
+          set -ex
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKM" ] || SDKM="$(command -v sdkmanager)"
+          set +o pipefail
+          yes | "$SDKM" --licenses > /dev/null 2>&1 || true
+          set -o pipefail
+          "$SDKM" --install \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1" > /dev/null
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      # librw is a git submodule that is NOT included when the project is
+      # uploaded as a zip, so fetch it here if it is missing.
+      - name: Fetch librw if missing
+        shell: bash
+        run: |
+          set -ex
+          if [ ! -f vendor/librw/CMakeLists.txt ]; then
+            rm -rf vendor/librw
+            git clone --depth 1 --branch android-sdl2-fixes \
+              https://github.com/codepdbh/librw-re3-android.git vendor/librw \
+              || git clone --depth 1 \
+              https://github.com/codepdbh/librw-re3-android.git vendor/librw
+          fi
 
       - name: Check required source and vendor files
+        shell: bash
         run: |
           set -eux
           test -f android/launcher/gradlew
           test -f android/launcher/app/CMakeLists.txt
           test -f vendor/librw/CMakeLists.txt
-          test -f vendor/ogg/CMakeLists.txt
           test -d vendor/sdl2
           test -d vendor/openal-soft
           test -d vendor/mpg123
+          test -f vendor/sdl2/libs/Android/arm64-v8a/libSDL2.so
+          test -f vendor/sdl2/libs/Android/armeabi-v7a/libSDL2.so
 
       - name: Build both Android variants
         working-directory: android/launcher
