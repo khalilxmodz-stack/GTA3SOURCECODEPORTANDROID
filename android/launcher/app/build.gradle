@@ -47,7 +47,8 @@ android {
 
             externalNativeBuild {
                 cmake {
-                    cppFlags '-O3', '-fvisibility=hidden'
+                    cFlags '-w'
+                    cppFlags '-O3', '-fvisibility=hidden', '-w'
                 }
             }
 
@@ -65,7 +66,8 @@ android {
 
             externalNativeBuild {
                 cmake {
-                    cppFlags '-g', '-DDEBUG'
+                    cFlags '-w'
+                    cppFlags '-g', '-DDEBUG', '-w'
                 }
             }
 
