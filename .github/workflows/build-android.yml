@@ -92,6 +92,27 @@ jobs:
           test -f vendor/sdl2/libs/Android/arm64-v8a/libSDL2.so
           test -f vendor/sdl2/libs/Android/armeabi-v7a/libSDL2.so
 
+      # The game #includes shaders/obj/*.inc, which are generated from the
+      # GLSL sources (make_glsl.sh upstream). They are not in the repo, and the
+      # original script cannot run here (invalid "#!sh" shebang, missing obj/).
+      - name: Generate GLSL shader includes
+        shell: bash
+        run: |
+          set -eux
+          cd src/extras/shaders
+          mkdir -p obj
+          for f in *.vert *.frag; do
+            ext="${f##*.}"
+            name="${f%.*}"
+            {
+              echo "const char *${name}_${ext}_src ="
+              tr -d '\r' < "$f" | sed 's/..*/"&\\n"/'
+              echo ';'
+            } > "obj/${name}_${ext}.inc"
+          done
+          ls obj
+          test -f obj/neoVehicle_frag.inc
+
       - name: Build both Android variants
         working-directory: android/launcher
         shell: bash
