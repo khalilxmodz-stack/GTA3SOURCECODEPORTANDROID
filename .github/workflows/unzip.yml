@@ -1,0 +1,77 @@
+name: Unzip
+
+# ضع هذا الملف في: .github/workflows/unzip.yml
+# ثم ارفع أي ملف .zip إلى جذر المستودع وسيتم استخراجه تلقائياً.
+
+on:
+  push:
+    paths:
+      - '*.zip'
+  workflow_dispatch:
+    inputs:
+      zip_file:
+        description: 'اسم ملف zip (اتركه فارغاً لاستخراج كل ملفات zip في الجذر)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract zip files
+        shell: bash
+        run: |
+          set -e
+          shopt -s nullglob
+
+          if [ -n "${{ github.event.inputs.zip_file }}" ]; then
+            files=("${{ github.event.inputs.zip_file }}")
+          else
+            files=(*.zip)
+          fi
+
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No zip files found."
+            exit 0
+          fi
+
+          for f in "${files[@]}"; do
+            echo "==> Extracting: $f"
+            tmp=$(mktemp -d)
+            unzip -q "$f" -d "$tmp"
+
+            # إذا كان الـ zip يحتوي على مجلد واحد فقط في الأعلى، ادخل إليه
+            src="$tmp"
+            count=$(find "$tmp" -mindepth 1 -maxdepth 1 | wc -l)
+            if [ "$count" -eq 1 ] && [ -d "$(find "$tmp" -mindepth 1 -maxdepth 1)" ]; then
+              src="$(find "$tmp" -mindepth 1 -maxdepth 1)"
+            fi
+
+            # تجاهل .github/workflows (GITHUB_TOKEN لا يملك صلاحية تعديل ملفات workflows)
+            rm -rf "$src/.github/workflows"
+
+            # انسخ كل شيء (بما فيه الملفات المخفية) إلى جذر المستودع
+            cp -a "$src"/. .
+
+            rm -rf "$tmp"
+            git rm -f --quiet "$f" || rm -f "$f"
+          done
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "Extract zip [skip ci]"
+            git push
+          fi
