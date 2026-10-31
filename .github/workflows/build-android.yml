@@ -1,0 +1,95 @@
+name: Build GTA3 Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'android/launcher/**'
+      - 'src/**'
+      - 'vendor/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/build-android.yml'
+  workflow_run:
+    workflows: ["Unzip"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gta3-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # When triggered after Unzip, build only if Unzip succeeded.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          # Required: librw, ogg, opus and opusfile are Git submodules.
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK and CMake
+        run: |
+          sdkmanager --install "ndk;27.2.12479018" "cmake;3.22.1"
+          yes | sdkmanager --licenses
+
+      - name: Check required source and vendor files
+        run: |
+          set -eux
+          test -f android/launcher/gradlew
+          test -f android/launcher/app/CMakeLists.txt
+          test -f vendor/librw/CMakeLists.txt
+          test -f vendor/ogg/CMakeLists.txt
+          test -d vendor/sdl2
+          test -d vendor/openal-soft
+          test -d vendor/mpg123
+
+      - name: Build both Android variants
+        working-directory: android/launcher
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace \
+            assembleStandardDebug \
+            assembleFwrDebug
+
+      - name: List generated APK files
+        if: always()
+        run: |
+          find android/launcher/app/build/outputs/apk -type f -name '*.apk' -print || true
+
+      - name: Upload standard APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GTA3-Android-standard-APK
+          path: android/launcher/app/build/outputs/apk/standard/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload FWR APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GTA3-Android-FWR-APK
+          path: android/launcher/app/build/outputs/apk/fwr/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
