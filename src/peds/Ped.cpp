@@ -8086,7 +8086,7 @@ CPed::FinishLaunchCB(CAnimBlendAssociation *animAssoc, void *arg)
 		|| ped->m_pedInObjective && ped->m_pedInObjective->IsPlayer()
 #endif
 		)
-		ped->ApplyMoveForce(0.0f, 0.0f, 8.5f);
+		ped->ApplyMoveForce(0.0f, 0.0f, 30.0f);
 	else
 		ped->ApplyMoveForce(0.0f, 0.0f, 4.5f);
 	
