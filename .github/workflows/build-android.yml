@@ -94,11 +94,29 @@ jobs:
 
       - name: Build both Android variants
         working-directory: android/launcher
+        shell: bash
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace \
-            assembleStandardDebug \
-            assembleFwrDebug
+          # Full output goes to a file (it is huge); only the errors are printed.
+          if ./gradlew --no-daemon --stacktrace --console=plain \
+               assembleStandardDebug assembleFwrDebug > "$GITHUB_WORKSPACE/build.log" 2>&1; then
+            echo "BUILD OK"
+          else
+            echo "================ BUILD FAILED: first errors ================"
+            grep -n -m 40 -E "error:|error TS|FAILED|What went wrong|Execution failed|CMake Error|undefined reference|fatal error|ld: error" "$GITHUB_WORKSPACE/build.log" || true
+            echo "================ last 60 lines ================"
+            tail -n 60 "$GITHUB_WORKSPACE/build.log"
+            exit 1
+          fi
+
+      - name: Upload full build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: List generated APK files
         if: always()
