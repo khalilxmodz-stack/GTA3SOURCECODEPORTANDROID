@@ -659,7 +659,7 @@ void CCarAI::MakeWayForCarWithSiren(CVehicle *pVehicle)
 		}else{
 			if (DotProduct2D(vehicle->GetMoveSpeed(), distance) < 0.0f && vehicle->AutoPilot.m_nTempAction != TEMPACT_WAIT){
 				vehicle->AutoPilot.m_nTempAction = TEMPACT_WAIT;
-				vehicle->AutoPilot.m_nTimeTempAction = CTimer::GetTimeInMilliseconds() + 2000;
+				vehicle->AutoPilot.m_nTimeTempAction = CTimer::GetTimeInMilliseconds() + 1; //Onlyedit
 			}
 		}
 	}
