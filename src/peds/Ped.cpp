@@ -60,13 +60,15 @@ bool CPed::bPopHeadsOnHeadshot = false;
 CPed::CPed(uint32 pedType) : m_pedIK(this)
 {
 	m_type = ENTITY_TYPE_PED;
-	bPedPhysics = true;
+	//Ithink this change physics work
+	bPedPhysics = false;
 	bUseCollisionRecords = true;
 
 	m_vecAnimMoveDelta.x = 0.0f;
 	m_vecAnimMoveDelta.y = 0.0f;
 	m_fHealth = 100.0f;
-	m_fArmour = 0.0f;
+	//ITkink armor
+	m_fArmour = 100.0f;
 	m_nPedType = pedType;
 	m_lastSoundStart = 0;
 	m_soundStart = 0;
@@ -8086,7 +8088,7 @@ CPed::FinishLaunchCB(CAnimBlendAssociation *animAssoc, void *arg)
 		|| ped->m_pedInObjective && ped->m_pedInObjective->IsPlayer()
 #endif
 		)
-		ped->ApplyMoveForce(0.0f, 0.0f, 30.0f);
+		ped->ApplyMoveForce(0.0f, 0.0f, 8.5f);
 	else
 		ped->ApplyMoveForce(0.0f, 0.0f, 4.5f);
 	
