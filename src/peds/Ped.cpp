@@ -61,7 +61,7 @@ CPed::CPed(uint32 pedType) : m_pedIK(this)
 {
 	m_type = ENTITY_TYPE_PED;
 	//Ithink this change physics work
-	bPedPhysics = false;
+	bPedPhysics = true;
 	bUseCollisionRecords = true;
 
 	m_vecAnimMoveDelta.x = 0.0f;
