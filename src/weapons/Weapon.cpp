@@ -39,7 +39,7 @@ uint16 gReloadSampleTime[WEAPONTYPE_LAST_WEAPONTYPE] =
 	250,		// COLT45
 	400,		// UZI
 	650,		// SHOTGUN
-	300,		// AK47
+	10000,		// AK47 I Change Value to see is this reload time more time
 	300,		// M16
 	423,		// SNIPERRIFLE
 	400,		// ROCKETLAUNCHER
